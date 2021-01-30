@@ -1,14 +1,7 @@
-import { useNavigation } from '@react-navigation/native';
 import React from 'react'
 import { StyleSheet, Text, View, Button } from 'react-native'
 
 function HomeScreen() {
-
-    const { navigate } = useNavigation()
-
-    const handleButtonPress = () => {
-        navigate('Home')
-    }
 
     return (
         <View style={styles.container}>
