@@ -2,7 +2,6 @@ import React from 'react'
 import { StyleSheet, Text, View, Button } from 'react-native'
 
 function HomeScreen() {
-
     return (
         <View style={styles.container}>
             <Text style={styles.loginText}>Home Screen :)</Text>
