@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react'
-import { StyleSheet, Text, View, Button, Platform, Image } from 'react-native'
+import { StyleSheet, View, Button, Platform, Image } from 'react-native'
 import { Camera } from 'expo-camera';
-
 import * as ImagePicker from 'expo-image-picker';
-import { TouchableOpacity } from 'react-native-gesture-handler';
 import { useNavigation } from '@react-navigation/native';
-import { ImageType } from 'expo-camera/build/Camera.types';
+import { gcpKey } from '../fbconfig';
+import axios from 'axios'
+import firebase from '../firebase.config'
 
 function HomeScreen() {
 
@@ -16,36 +16,65 @@ function HomeScreen() {
 
     const navigation = useNavigation()
 
-    const handleOpenCamera = async () => {
-        console.log('opening camera')
-        const result = await ImagePicker.launchCameraAsync({
-            allowsEditing: true,
-            aspect: [16, 9],
-            quality: 1
-        })
-        //console.log(result)
-        if (!result.cancelled) {
-            setImage(result.uri);
-            console.log(result.uri);
-        }
-    }
+    const [status, setStatus] = React.useState(null);
 
-    const handlePickImage = async () => {
-        let result = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ImagePicker.MediaTypeOptions.All,
-            allowsEditing: true,
-            aspect: [16, 9],
-            quality: 1
+    const takePictureAsync = async () => {
+        const { cancelled, uri, base64 } = await ImagePicker.launchCameraAsync({
+            base64: true,
         });
 
-        //console.log(result);
-
-        if (!result.cancelled) {
-            setImage(result.uri);
-            console.log(result.uri);
-
+        if (!cancelled) {
+            setImage(uri);
+            setStatus('Loading...');
+            try {
+                const result = await callGoogleVisionAsync(base64);
+                console.log
+                setStatus(result);
+            } catch (error) {
+                setStatus(`Error: ${error.message}`);
+            }
+        } else {
+            setImage(null);
+            setStatus(null);
         }
     };
+
+    async function callGoogleVisionAsync(image) {
+        const body = {
+            requests: [
+                {
+                    image: {
+                        content: image,
+                    },
+                    features: [
+                        //{ type: 'LABEL_DETECTION', maxResults: 1 },
+                        { type: "TEXT_DETECTION", maxResults: 1 },
+                        //{ type: "DOCUMENT_TEXT_DETECTION", maxResults: 1 }
+                    ],
+                },
+            ],
+        };
+
+        const response = await fetch("https://vision.googleapis.com/v1/images:annotate?key=" + gcpKey, {
+            method: 'POST',
+            headers: {
+                Accept: 'application/json',
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(body),
+        });
+        const result = await response.json();
+        //console.log('callGoogleVisionAsync -> result', result);
+        console.log('RESULT')
+        console.log(result.responses[0].fullTextAnnotation.pages[0].blocks[0])
+        // result.responses[0].fullTextAnnotation.pages.forEach((page) => {
+        //     page.blocks.forEach((block) => {
+        //         console.log(block)
+        //     })
+        // })
+
+        return result.responses[0].labelAnnotations[0].description;
+    }
 
     useEffect(() => {
         (async () => {
@@ -57,7 +86,6 @@ function HomeScreen() {
             }
         })();
     }, []);
-
     useEffect(() => {
         (async () => {
             const { status } = await Camera.requestPermissionsAsync();
@@ -68,8 +96,9 @@ function HomeScreen() {
     return (
         <View style={styles.container}>
             { image && <Image source={{ uri: image }} resizeMode='contain' style={styles.imagePreview} />}
-            <Button title='Take Photo' onPress={handleOpenCamera} />
-            <Button title='Upload Image' onPress={handlePickImage} />
+            <Button title='Take Photo' onPress={takePictureAsync} />
+            <Button title='Upload Image' />
+            { image && <Button title='Submit' color='blue' />}
         </View>
     );
 }
@@ -84,9 +113,7 @@ const styles = StyleSheet.create({
     imagePreview: {
         width: '100%',
         height: '40%',
-
     }
-
 });
 
 export default HomeScreen

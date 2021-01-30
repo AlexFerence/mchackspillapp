@@ -8,7 +8,7 @@ const Stack = createStackNavigator();
 const AppSecondary = () => {
     return (
         <Stack.Navigator>
-            <Stack.Screen name="Login" component={LoginScreen} />
+            <Stack.Screen options={{ headerShown: false }} name="Login" component={LoginScreen} />
             <Stack.Screen name="Home" component={HomeScreen} />
             <Stack.Screen options={{ headerShown: false }} name="CameraScreen" component={CameraScreen} />
         </Stack.Navigator>
